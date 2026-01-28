@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<title>Result System</title>
+<style>
+body{font-family:Arial;background:#eef2ee;margin:0}
+.container{max-width:1100px;margin:auto;padding:20px}
+.card{background:#fff;padding:20px;margin-bottom:20px;border-radius:10px}
+input,button{padding:8px;margin-top:5px;width:100%}
+button{background:#2f5d50;color:#fff;border:none;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+label{display:block;margin-top:5px}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ================= BOOKS PANEL ================= -->
+<div class="card">
+<h2>📚 Books / Subjects</h2>
+
+<input id="bookName" placeholder="کتاب / مضمون کا نام">
+<button onclick="addBook()">➕ Add Book</button>
+
+<table>
+<thead>
+<tr><th>#</th><th>کتاب</th><th>Action</th></tr>
+</thead>
+<tbody id="bookTable"></tbody>
+</table>
+</div>
+
+<!-- ================= EXAM TYPE ================= -->
+<div class="card">
+<h2>📝 امتحان کی قسم</h2>
+<label><input type="radio" name="examType" value="سہ ماہی امتحان"> سہ ماہی امتحان</label>
+<label><input type="radio" name="examType" value="شش ماہی امتحان"> شش ماہی امتحان</label>
+<label><input type="radio" name="examType" value="سالانہ امتحان"> سالانہ امتحان</label>
+</div>
+
+<!-- ================= RESULT ENTRY ================= -->
+<div class="card">
+<h2>➕ نتیجہ اندراج</h2>
+
+<input id="roll" placeholder="رول نمبر">
+
+<div id="marksArea"></div>
+
+<button onclick="saveResult()">💾 نتیجہ محفوظ کریں</button>
+<p id="msg"></p>
+</div>
+
+<!-- ================= RESULT CHECK ================= -->
+<div class="card">
+<h2>🎓 نتیجہ دیکھیں</h2>
+<input id="checkRoll" placeholder="رول نمبر">
+<button onclick="checkResult()">نتیجہ دیکھیں</button>
+<div id="result"></div>
+</div>
+
+</div>
+
+<script>
+/* ================= BOOKS LOGIC ================= */
+let books = JSON.parse(localStorage.getItem("books")) || [];
+let editIndex = -1;
+
+function addBook(){
+ let name = bookName.value.trim();
+ if(!name) return;
+
+ if(editIndex === -1){
+   books.push(name);
+ } else {
+   books[editIndex] = name;
+   editIndex = -1;
+ }
+ bookName.value="";
+ saveBooks();
+ renderBooks();
+}
+
+function editBook(i){
+ bookName.value = books[i];
+ editIndex = i;
+}
+
+function deleteBook(i){
+ books.splice(i,1);
+ saveBooks();
+ renderBooks();
+}
+
+function saveBooks(){
+ localStorage.setItem("books", JSON.stringify(books));
+}
+
+function renderBooks(){
+ bookTable.innerHTML="";
+ books.forEach((b,i)=>{
+   bookTable.innerHTML += `
+   <tr>
+     <td>${i+1}</td>
+     <td>${b}</td>
+     <td>
+       <button onclick="editBook(${i})">✏️</button>
+       <button onclick="deleteBook(${i})">❌</button>
+     </td>
+   </tr>`;
+ });
+ renderMarksInputs();
+}
+renderBooks();
+
+/* ================= MARKS INPUT ================= */
+function renderMarksInputs(){
+ marksArea.innerHTML="";
+ books.forEach((b,i)=>{
+   marksArea.innerHTML += `<input id="m${i}" placeholder="${b} (100)">`;
+ });
+}
+
+/* ================= RESULT LOGIC ================= */
+let results = JSON.parse(localStorage.getItem("results")) || {};
+
+function saveResult(){
+ let rollNo = roll.value;
+ let exam = document.querySelector('input[name="examType"]:checked')?.value;
+ if(!rollNo || !exam){ msg.innerHTML="❌ رول یا امتحان منتخب کریں"; return; }
+
+ let marks = books.map((b,i)=> +document.getElementById("m"+i).value || 0);
+
+ results[rollNo+"_"+exam] = { marks, exam };
+ localStorage.setItem("results", JSON.stringify(results));
+
+ msg.innerHTML="✅ نتیجہ محفوظ ہو گیا";
+}
+
+function checkResult(){
+ let r = checkRoll.value;
+ let exam = document.querySelector('input[name="examType"]:checked')?.value;
+ let key = r+"_"+exam;
+ let res = results[key];
+
+ if(!res){
+   result.innerHTML="<p style='color:red'>❌ نتیجہ نہیں ملا</p>";
+   return;
+ }
+
+ let total = res.marks.reduce((a,b)=>a+b,0);
+ let rows="";
+ books.forEach((b,i)=>{
+   rows+=`<tr><td>${b}</td><td>${res.marks[i]}</td></tr>`;
+ });
+
+ result.innerHTML = `
+ <table>
+ <tr><th>کتاب</th><th>نمبر</th></tr>
+ ${rows}
+ </table>
+ <b>کل نمبر:</b> ${total}
+ `;
+}
+</script>
+
+</body>
+</html>
