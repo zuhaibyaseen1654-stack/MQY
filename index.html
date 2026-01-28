@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<title>Anwar-ul-Uloom Islamic University - نتیجہ سسٹم</title>
+<style>
+body{font-family:Arial;background:#eef2ee;margin:0}
+.container{max-width:1100px;margin:auto;padding:20px}
+header{text-align:center;color:#2f5d50;margin-bottom:20px}
+.card{background:#fff;padding:20px;margin-bottom:20px;border-radius:10px;box-shadow:0 6px 15px rgba(0,0,0,.1)}
+h2{color:#2f5d50;margin-top:0}
+input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:5px;border:1px solid #ccc}
+button{background:#2f5d50;color:#fff;border:none;cursor:pointer;transition:0.3s}
+button:hover{background:#3e7d65}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:8px;text-align:center}
+.pass{color:green;font-weight:bold}
+.fail{color:red;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h1>Anwar-ul-Uloom Islamic University</h1>
+<hr>
+</header>
+
+<!-- Admin Login -->
+<div class="card">
+<h2>🔐 ایڈمن لاگ اِن</h2>
+<input type="password" id="adminPass" placeholder="ایڈمن پاسورڈ">
+<button onclick="login()">لاگ اِن</button>
+<p id="loginMsg"></p>
+</div>
+
+<!-- Admin Panel -->
+<div class="card" id="adminPanel" style="display:none">
+<h2>➕ طالب علم کا نتیجہ</h2>
+
+<div class="grid">
+<input id="roll" placeholder="رول نمبر">
+<input id="studentName" placeholder="طالب علم کا نام">
+<input id="fatherName" placeholder="والد کا نام">
+</div>
+
+<div class="grid">
+<select id="className" onchange="updateSubjects()">
+<option>متوسطہ</option>
+<option>عامہ اوّل</option>
+<option>عامہ دوم</option>
+<option>خاصہ اوّل</option>
+<option>خاصہ دوم</option>
+<option>عالیہ اوّل</option>
+<option>عالیہ دوم</option>
+<option>علمیہ اوّل</option>
+<option>علمیہ دوم</option>
+<option>تخصّص فقہ سال اوّل</option>
+<option>تخصّص فقہ سال دوم</option>
+</select>
+
+<select id="year">
+<option>2024</option>
+<option>2025</option>
+<option>2026</option>
+</select>
+
+<select id="gender">
+<option>طالب علم</option>
+<option>طالبہ</option>
+</select>
+
+<select id="examType">
+<option>سہ ماہی</option>
+<option>ششماہی</option>
+<option>سالانہ</option>
+</select>
+</div>
+
+<div class="grid" id="subjectsGrid"></div>
+<button onclick="addSubject()">➕ کتاب شامل کریں</button>
+<button onclick="deleteSubject()">❌ کتاب حذف کریں</button>
+
+<button onclick="addStudent()">نتیجہ محفوظ کریں</button>
+<button onclick="deleteStudent()">❌ نتیجہ حذف کریں</button>
+<p id="msg"></p>
+
+<hr>
+<h3>⚙️ پاسورڈ تبدیل کریں</h3>
+<input type="password" id="newPass" placeholder="نیا پاسورڈ">
+<button onclick="changePassword()">پاسورڈ تبدیل کریں</button>
+<p id="passMsg"></p>
+
+<hr>
+<button onclick="downloadBackup()">📥 بیک اَپ ڈاؤن لوڈ</button>
+<input type="file" onchange="uploadBackup(this)">
+</div>
+
+<!-- Student/Talibat View -->
+<div class="card">
+<h2>🎓 اپنا نتیجہ دیکھیں</h2>
+<div class="grid">
+<input id="stuRoll" placeholder="رول نمبر">
+<select id="stuYear">
+<option>2024</option>
+<option>2025</option>
+<option>2026</option>
+</select>
+<select id="stuGender">
+<option>طالب علم</option>
+<option>طالبہ</option>
+</select>
+<select id="stuClass">
+<option>متوسطہ</option>
+<option>عامہ اوّل</option>
+<option>عامہ دوم</option>
+<option>خاصہ اوّل</option>
+<option>خاصہ دوم</option>
+<option>عالیہ اوّل</option>
+<option>عالیہ دوم</option>
+<option>علمیہ اوّل</option>
+<option>علمیہ دوم</option>
+<option>تخصّص فقہ سال اوّل</option>
+<option>تخصّص فقہ سال دوم</option>
+</select>
+</div>
+<button onclick="checkStudentResult()">نتیجہ دیکھیں</button>
+<button onclick="backSearch()">🔙 واپس</button>
+<div id="stuResult"></div>
+<button onclick="printStudentResult()">🖨 پرنٹ / PDF</button>
+
+<audio id="soundSuccess" src="https://www.soundjay.com/human/sounds/applause-8.mp3"></audio>
+<audio id="soundFail" src="https://www.soundjay.com/button/beep-10.mp3"></audio>
+
+</div>
+
+</div>
+
+<script>
+if(!localStorage.getItem("adminPassword")) localStorage.setItem("adminPassword","Qamar1654");
+let students=JSON.parse(localStorage.getItem("students"))||{};
+
+const classSubjects = {
+ "متوسطہ": ["قرآن / تفسیر","حدیث","فقہ","اصول فقہ","نحو / صرف","عربی"],
+ "عامہ اوّل": ["قرآن","حدیث","فقہ"],
+ "عامہ دوم": ["قرآن","حدیث","فقہ","عربی"],
+ "خاصہ اوّل": ["قرآن,حدیث","حدیث","فقہ","عربی","اصول فقہ"],
+ "خاصہ دوم": ["قرآن","حدیث","فقہ","عربی","اصول فقہ"],
+ "عالیہ اوّل": ["قرآن / تفسیر","حدیث","فقہ","اصول فقہ","نحو / صرف","عربی"],
+ "عالیہ دوم": ["قرآن / تفسیر","حدیث","فقہ","اصول فقہ","نحو / صرف","عربی"],
+ "علمیہ اوّل": ["قرآن / تفسیر","حدیث","فقہ","اصول فقہ","نحو / صرف","عربی"],
+ "علمیہ دوم": ["قرآن / تفسیر","حدیث","فقہ","اصول فقہ","نحو / صرف","عربی"],
+ "تخصّص فقہ سال اوّل": ["فقہ / اصول فقہ","حدیث"],
+ "تخصّص فقہ سال دوم": ["فقہ / اصول فقہ","حدیث"]
+};
+
+function updateSubjects(){
+ const selectedClass = document.getElementById("className").value;
+ const books = classSubjects[selectedClass] || [];
+ const g = document.getElementById("subjectsGrid");
+ g.innerHTML = "";
+ books.forEach((book,i)=>{
+   let inp = document.createElement("input");
+   inp.id = "m"+(i+1);
+   inp.placeholder = book + " (100)";
+   g.appendChild(inp);
+ });
+}
+updateSubjects();
+
+function addSubject(){
+ const bookName = prompt("نئی کتاب کا نام درج کریں:");
+ if(!bookName) return;
+ const cls = document.getElementById("className").value;
+ classSubjects[cls].push(bookName);
+ updateSubjects();
+}
+
+function deleteSubject(){
+ const cls = document.getElementById("className").value;
+ const bookName = prompt("حذف کرنے کے لئے کتاب کا نام درج کریں:");
+ if(!bookName) return;
+ classSubjects[cls] = classSubjects[cls].filter(b=>b!==bookName);
+ updateSubjects();
+}
+
+function login(){
+ const savedPass = localStorage.getItem("adminPassword");
+ if(adminPass.value===savedPass){
+  adminPanel.style.display="block";
+  loginMsg.innerHTML="✅ کامیاب";
+ } else loginMsg.innerHTML="❌ غلط پاسورڈ";
+}
+
+function changePassword(){
+ const newP = document.getElementById("newPass").value;
+ if(!newP){ passMsg.innerHTML="❌ نیا پاسورڈ ڈالیں"; return; }
+ localStorage.setItem("adminPassword",newP);
+ passMsg.innerHTML="✅ پاسورڈ تبدیل ہو گیا";
+ document.getElementById("newPass").value="";
+}
+
+function addStudent(){
+ const selectedClass = document.getElementById("className").value;
+ const books = classSubjects[selectedClass] || [];
+ const marks = books.map((b,i)=>{
+   const val = document.getElementById("m"+(i+1)).value;
+   return +val;
+ });
+
+ const examType = document.getElementById("examType").value;
+ students[roll.value]={
+  name:studentName.value,
+  father:fatherName.value,
+  class:selectedClass,
+  year:year.value,
+  gender:gender.value,
+  examType:examType,
+  books: books,
+  marks: marks
+ };
+ localStorage.setItem("students",JSON.stringify(students));
+ msg.innerHTML="✅ محفوظ ہو گیا";
+}
+
+function deleteStudent(){
+ if(!roll.value || !students[roll.value]) { msg.innerHTML="❌ رول نمبر موجود نہیں"; return; }
+ delete students[roll.value];
+ localStorage.setItem("students",JSON.stringify(students));
+ msg.innerHTML="✅ نتیجہ حذف ہو گیا";
+}
+
+function checkStudentResult(){
+ let stuRoll=document.getElementById("stuRoll").value;
+ let stuYear=document.getElementById("stuYear").value;
+ let stuGender=document.getElementById("stuGender").value;
+ let stuClass=document.getElementById("stuClass").value;
+ let s = students[stuRoll];
+
+ if(!s || s.year !== stuYear || s.gender !== stuGender || s.class !== stuClass){
+   document.getElementById("stuResult").innerHTML="<p class='fail'>❌ نتیجہ نہیں ملا</p>";
+   document.getElementById("soundFail").play();
+   return;
+ }
+
+ let total = s.marks.reduce((a,b)=>a+b,0);
+ let per = (total / (s.marks.length*100) * 100).toFixed(2);
+ let grade = total>=480?"ممتاز":total>=420?"جید":total>=240?"مقبول":"رسید";
+ let status = total>=240?"✅ کامیاب":"❌ ناکام";
+ let rows = "";
+ s.books.forEach((book,i)=>{
+   rows+=`<tr><td>${book}</td><td>${s.marks[i]}</td></tr>`;
+ });
+
+ document.getElementById("stuResult").innerHTML=`
+ <b>طالب علم کا نام:</b> ${s.name}<br>
+ <b>والد کا نام:</b> ${s.father}<br>
+ <b>رول نمبر:</b> ${stuRoll}<br>
+ <b>کلاس:</b> ${s.class}<br>
+ <b>سال:</b> ${s.year}<br>
+ <b>امتحان:</b> ${s.examType}<br>
+ <table><tr><th>کتاب / مضمون</th><th>حاصل کردہ نمبر</th></tr>${rows}</table>
+ <b>کل نمبر:</b> ${total}<br>
+ <b>فیصد:</b> ${per}%<br>
+ <b>گریڈ:</b> ${grade}<br>
+ <b>نتیجہ:</b> ${status}
+ `;
+
+ if(total>=240){
+   document.getElementById("soundSuccess").play();
+ } else {
+   document.getElementById("soundFail").play();
+ }
+}
+
+function backSearch(){
+ document.getElementById("stuResult").innerHTML="";
+ document.getElementById("stuRoll").value="";
+}
+
+function printStudentResult(){
+ let c=document.getElementById("stuResult").innerHTML;
+ document.body.innerHTML="<h2 style='text-align:center'>Anwar-ul-Uloom Islamic University - نتیجہ</h2><hr>"+c;
+ window.print();
+ location.reload();
+}
+
+function downloadBackup(){
+ let data=JSON.stringify(students);
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([data]));
+ a.download="islamic_university_results.json";
+ a.click();
+}
+
+function uploadBackup(input){
+ let file=input.files[0];
+ let reader=new FileReader();
+ reader.onload=()=>{students=JSON.parse(reader.result);localStorage.setItem("students",reader.result);alert("✅ Restore Complete");};
+ reader.readAsText(file);
+}
+</script>
+</body>
+</html>
